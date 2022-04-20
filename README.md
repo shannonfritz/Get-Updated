@@ -26,20 +26,21 @@ A PowerShell Transcript log is created in `C:\Microsoft\IntuneManagementExtensio
 
 ```
 **********************
-Attempting to update Microsoft Edge
+C:\Program Files (x86)\Microsoft Intune Management Extension\Policies\Scripts\00000000-0000-0000-0000-000000000000_39b7981f-5e68-44d1-8cb2-870bd9de080c.ps1
+Attempting to update Teams Machine-wide Installer
 Current installer hasn't been downloaded yet.
-Fetching list of available Edge installers
-Checking the latest version available for Stable channel..: 100.0.1185.44
-Checking the installed version currently on this device...:
-Download redirected to https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/b3ed8b52-ee6b-401e-aa19-85b6f3dbfa0e/MicrosoftEdgeEnterpriseX64.msi
-Starting download of: MicrosoftEdgeEnterpriseX64.msi as C:\Windows\TEMP\CurrentEdge.msi
-Download completed in 2 seconds
-Calculated checksum matches the Expcted checksum!
-Installing C:\Windows\TEMP\CurrentEdge.msi
-Installation completed in 52 seconds
-Checking the now-installed version on this device
-Installed Version on this device was ..:
-Installed Version on this device is ...: 100.0.1185.44
+Download redirected to https://statics.teams.cdn.office.net/production-windows-x64/1.5.00.9163/Teams_windows_x64.msi
+Available Teams Machine-wide Installer version ....: 1.5.00.9163
+Pre-installed Teams Machine-wide Installer version : 1.3.0.13565
+Uninstalling older version of Teams Machine-wide Installer
+Uninstallation took 1 seconds
+Starting download of: C:\Windows\TEMP\CurrentTeams.msi
+Download completed in 1 seconds
+Downloaded Teams Machine-wide Installer version ...: 1.5.0.9163
+Installing C:\Windows\TEMP\CurrentTeams.msi
+Installation completed in 5 seconds
+Installed Version on this device was ..: 1.3.0.13565
+Installed Version on this device is ...: 1.5.0.9163
 Update was sucessful.
 **********************
 ```
