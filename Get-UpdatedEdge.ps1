@@ -119,7 +119,7 @@ else
             #$perf = Measure-Command { Invoke-WebRequest -Uri $artifact.Location -OutFile "$InstallerMSI" -UseBasicParsing }
             #$perf = Measure-Command { Start-BitsTransfer -Source $artifact.Location -Destination "$InstallerMSI" }
     	    $client = new-object System.Net.WebClient
-	        $perf = Measure-Command { $client.DownloadFile($artifact.Location, $InstallerMSI) }
+	    $perf = Measure-Command { $client.DownloadFile($artifact.Location, $InstallerMSI) }
             Write-Host "Download completed in $($perf.Seconds) seconds"
         }
         catch {
