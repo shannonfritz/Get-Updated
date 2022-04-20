@@ -155,10 +155,10 @@ elseif ($preInstalledVersion -gt $DownloadVer) {
 else {
     try {
         Write-Host "Starting download of: $InstallerEXE"
-        #$perf = Measure-Command { Invoke-WebRequest -Uri $InstallerURI -OutFile "$InstallerEXE" -UseBasicParsing }
-        #$perf = Measure-Command { Start-BitsTransfer -Source $InstallerURI -Destination "$InstallerEXE" }
+        #$perf = Measure-Command { Invoke-WebRequest -Uri $DownloadURI -OutFile "$InstallerEXE" -UseBasicParsing }
+        #$perf = Measure-Command { Start-BitsTransfer -Source $DownloadURI -Destination "$InstallerEXE" }
     	$client = new-object System.Net.WebClient
-	    $perf = Measure-Command { $client.DownloadFile($DownloadURI, $InstallerEXE) }
+	$perf = Measure-Command { $client.DownloadFile($DownloadURI, $InstallerEXE) }
         Write-Host "Download completed in $($perf.Seconds) seconds"
 
         $downloadedVersion = [string]$($(Get-Item "$InstallerEXE").VersionInfo).ProductVersion
