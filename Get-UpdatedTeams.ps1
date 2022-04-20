@@ -119,10 +119,10 @@ if ($doInstall)
 {
     try {
         Write-Host "Starting download of: $InstallerMSI"
-        #$perf = Measure-Command { Invoke-WebRequest -Uri $InstallerURI -OutFile "$InstallerMSI" -UseBasicParsing }
-        #$perf = Measure-Command { Start-BitsTransfer -Source $InstallerURI -Destination "$InstallerMSI" }
+        #$perf = Measure-Command { Invoke-WebRequest -Uri $DownloadURI -OutFile "$InstallerMSI" -UseBasicParsing }
+        #$perf = Measure-Command { Start-BitsTransfer -Source $DownloadURI -Destination "$InstallerMSI" }
         $client = new-object System.Net.WebClient
-	    $perf = Measure-Command { $client.DownloadFile($DownloadURI, $InstallerMSI) }
+	$perf = Measure-Command { $client.DownloadFile($DownloadURI, $InstallerMSI) }
         Write-Host "Download completed in $($perf.Seconds) seconds"
     }
     catch {
