@@ -6,7 +6,7 @@ These products typically come built-in to Windows now, but OEM images will never
 | App | URL | Size | Description |
 |:---:|:---:|:---:| --- |
 | [Edge](https://www.microsoft.com/en-us/edge/business/download) | [link](https://edgeupdates.microsoft.com/api/products?view=enterprise) | ~120mb | Using [Mattias Benninge's approach](https://www.deploymentresearch.com/using-powershell-to-download-edge-chromium-for-business/) to retrieve the latest Stable x64 installer |
-| [OneDrive](https://www.microsoft.com/en-us/microsoft-365/onedrive/download) | [link](https://go.microsoft.com/fwlink/?linkid=844652) | ~50mb | Using [Neihaus' method in Autopilot Branding](https://github.com/mtniehaus/AutopilotBranding) to update OneDrive with latest x64 installer for All Users |
+| [OneDrive](https://www.microsoft.com/en-us/microsoft-365/onedrive/download) | [link](https://go.microsoft.com/fwlink/?linkid=844652) | ~50mb | Using [Niehaus' method in Autopilot Branding](https://github.com/mtniehaus/AutopilotBranding) to update OneDrive with latest x64 installer for All Users |
 | [Teams](https://docs.microsoft.com/en-us/MicrosoftTeams/msi-deployment) | [link](https://teams.microsoft.com/downloads/desktopurl?env=production&plat=windows&arch=x64&managedInstaller=true&download=true) | ~120mb | Uses the current x64 Teams Machine-Wide installer, but does not make any changes for User copies of Teams |
 
 There is some basic error handling and built-in logic to hopefully prevent unnecessary or repeated downloads.
