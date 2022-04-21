@@ -1,4 +1,4 @@
-﻿$ScriptName = 'Get-UpdatedDefender-v1.01'
+﻿$ScriptName = 'Get-UpdatedDefender-v1.02'
 # Updates Microsoft Defender for Endpoint from Windows Update Services
 # Variation on the VB script here https://docs.microsoft.com/en-us/previous-versions/windows/desktop/aa387102(v=vs.85)
 
@@ -56,10 +56,12 @@ Do {
         $DefenderUpdatesDownloadColl = New-Object -ComObject Microsoft.Update.UpdateColl
         foreach ($DefenderUpdateScan in $UpdateScanResult.Updates) {
             #Add only updates that is not requiring User prompt
-            if ($DefenderUpdateScan.InstallationBehavior.CanRequestUserInput -eq $false) {
-                Write-Host ("Adding: {0}." -f $DefenderUpdateScan.title)
+            if (-not $DefenderUpdateScan.InstallationBehavior.CanRequestUserInput) {
+                Write-Host ("Adding: {0} ({1:N1}MB)" -f $DefenderUpdateScan.title, $($DefenderUpdateScan.MaxDownloadSize/1MB))
+                $DefenderUpdatesDownloadColl.Add($DefenderUpdateScan) | Out-Null
+            } else {
+                Write-Warning ("Skipping: {0} (may require user input)" -f $DefenderUpdateScan.title)
             }
-            $DefenderUpdatesDownloadColl.Add($DefenderUpdateScan) | Out-Null
         }
 
         Write-Host ("Number of updates to download : {0}" -f $DefenderUpdatesDownloadColl.count)
