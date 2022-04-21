@@ -8,6 +8,7 @@ These products typically come built-in to Windows now, but OEM images will never
 | [Edge](https://www.microsoft.com/en-us/edge/business/download) | [link](https://edgeupdates.microsoft.com/api/products?view=enterprise) | ~120mb | Using [Mattias Benninge's approach](https://www.deploymentresearch.com/using-powershell-to-download-edge-chromium-for-business/) to retrieve the latest Stable x64 installer |
 | [OneDrive](https://www.microsoft.com/en-us/microsoft-365/onedrive/download) | [link](https://go.microsoft.com/fwlink/?linkid=844652) | ~50mb | Using [Niehaus' method in Autopilot Branding](https://github.com/mtniehaus/AutopilotBranding) to update OneDrive with latest x64 installer for All Users |
 | [Teams](https://docs.microsoft.com/en-us/MicrosoftTeams/msi-deployment) | [link](https://teams.microsoft.com/downloads/desktopurl?env=production&plat=windows&arch=x64&managedInstaller=true&download=true) | ~120mb | Uses the current x64 Teams Machine-Wide installer, but does not make any changes for User copies of Teams |
+| [Defender](https://docs.microsoft.com/en-us/microsoft-365/security/defender-endpoint/manage-updates-baselines-microsoft-defender-antivirus) | [link](https://devblogs.microsoft.com/scripting/use-powershell-to-update-windows-defender-signatures/) | ~120mb | Using a powershell variation of a [sample VB script](https://docs.microsoft.com/en-us/previous-versions/windows/desktop/aa387102(v=vs.85)) to install Security intelligence updates ([KB2267602](https://www.microsoft.com/en-us/wdsi/defenderupdates)) and Product updates ([KB4052623](https://support.microsoft.com/help/4052623/update-for-windows-defender-antimalware-platform)) then uses [Update-MpSignature](https://docs.microsoft.com/en-us/powershell/module/defender/update-mpsignature) to update antimalware definitions |
 
 There is some basic error handling and built-in logic to hopefully prevent unnecessary or repeated downloads.
 
@@ -26,20 +27,23 @@ A PowerShell Transcript log is created in `C:\Microsoft\IntuneManagementExtensio
 
 ```
 **********************
+Get-UpdatedTeams-v1.03
 C:\Program Files (x86)\Microsoft Intune Management Extension\Policies\Scripts\00000000-0000-0000-0000-000000000000_39b7981f-5e68-44d1-8cb2-870bd9de080c.ps1
 Attempting to update Teams Machine-wide Installer
 Current installer hasn't been downloaded yet.
 Download redirected to https://statics.teams.cdn.office.net/production-windows-x64/1.5.00.9163/Teams_windows_x64.msi
 Available Teams Machine-wide Installer version ....: 1.5.00.9163
-Pre-installed Teams Machine-wide Installer version : 1.3.0.13565
+Pre-installed Teams Machine-wide Installer version : 1.3.0.28779
+Installation needed.  The Pre-Installed version is outdated.
 Uninstalling older version of Teams Machine-wide Installer
 Uninstallation took 1 seconds
-Starting download of: C:\Windows\TEMP\CurrentTeams.msi
+Starting download to C:\Windows\TEMP\GotUpdatedTeams.msi
 Download completed in 1 seconds
 Downloaded Teams Machine-wide Installer version ...: 1.5.0.9163
-Installing C:\Windows\TEMP\CurrentTeams.msi
+Installing C:\Windows\TEMP\GotUpdatedTeams.msi
 Installation completed in 5 seconds
-Installed Version on this device was ..: 1.3.0.13565
+Checking the now-installed version on this device
+Installed Version on this device was ..: 1.3.0.28779
 Installed Version on this device is ...: 1.5.0.9163
 Update was sucessful.
 **********************
@@ -54,7 +58,7 @@ During the Windows OOBE / Autopilot process, the IME will be installed then run 
 
 Scripts will also run whenever a new user signs in to the device, so an attempt was made to prevent the scripts from unnecessarily downloading the installers, but it could probably be managed better.  Today it just checks if an installation file for the product already exists (in $env:TEMP), and if it does then it assums the script already ran the update some time before and just quits gracefully. If the installer file is not found then the script tries to determine what version is currently installed and only downloads if the available version is newer.  It might be better to use a registry key somewhere to indicate the script should just quit, but this seems to be working for now.
 
-# Why not use an Win32 app?
+# Why not use a Win32 app?
 These scripts could eaily be put in a [Win32 .intunewin package](https://docs.microsoft.com/en-us/mem/intune/apps/apps-win32-prepare) and be assigned as an "application" rather than as a script, but there wouldn't be a huge benifit given the way these scripts behave.
 
 **First**, the scripts do not contain the actual installation files, so they are not large file sizes and there would be no tangible benifit from the availability of [Delivery Optomization for Win32 apps](https://docs.microsoft.com/en-us/windows/deployment/do/waas-delivery-optimization#windows-client).  If you packged the installers, you could argue that DO would help, but now you'd have to mantain the packages and revisit them when never versions of the apps are released.  The design of this script is meant to always get the lattest version, on-demand for each device deployment by each individual device.  Assuming you have update policies to keep these products current, that should mean everyone is running the latest version, including those coming right out-of-the-box.
