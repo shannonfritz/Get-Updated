@@ -1,9 +1,10 @@
-﻿# Get-UpdatedTeams.ps1 v1.02
+﻿$ScriptName = 'Get-UpdatedTeams-v1.03'
 # Updates Teams to whatever is the current version available to download for the Commercial x64 Machine-Wide installer
 
 # Log to the ProgramData path for IME.  If Diagnostic data is collected, this .log should come along for the ride.
-Start-Transcript -Path "$('{0}\Microsoft\IntuneManagementExtension\Logs\Get-UpdatedTeams-{1}.log' -f $env:ProgramData, $(Get-Date).ToFileTimeUtc())" | Out-Null
+Start-Transcript -Path "$('{0}\Microsoft\IntuneManagementExtension\Logs\{1}-{2}.log' -f $env:ProgramData, $ScriptName, $(Get-Date).ToFileTimeUtc())" | Out-Null
 #Start-Transcript -Path "$('{0}-{1}.log' -f $PSCommandPath, $(Get-Date).ToFileTimeUtc())" | Out-Null
+Write-Host $ScriptName
 Write-Host $PSCommandPath
 
 # Download the current Teams Machine Wide installer, remove older version and install the downloaded one
@@ -13,7 +14,6 @@ Write-Host $PSCommandPath
 $appName = 'Teams Machine-wide Installer'
 $InstallerURI = 'https://teams.microsoft.com/downloads/desktopurl?env=production&plat=windows&arch=x64&managedInstaller=true&download=true'
 $InstallerMSI = "$($env:TEMP)\GotUpdatedTeams.msi"
-#$filename = ('Teams_windows-{0}.msi' -f [Guid]::NewGuid().ToString())
 
 # Force using TLS 1.2 connection
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -24,12 +24,12 @@ $ProgressPreference = 'SilentlyContinue'
 $exitCode = 0
 
 Write-Host "Attempting to update $appName"
-if (Test-Path -Path $InstallerMSI -PathType Leaf)
-{
+if (Test-Path -Path $InstallerMSI -PathType Leaf) {
     Write-Host "$InstallerMSI already exists.  Assuming this script has already run and exiting clean."
     Stop-Transcript | Out-Null
     exit $exitCode
-} else {
+}
+else {
     Write-Host "Current installer hasn't been downloaded yet."
 }
 
@@ -65,7 +65,6 @@ function Get-RedirectedUri {
                     # This is for Powershell core
                     $redirectUri = $request.BaseResponse.RequestMessage.RequestUri.AbsoluteUri
                 }
- 
                 $retry = $false
             }
             catch {
@@ -78,7 +77,6 @@ function Get-RedirectedUri {
                 }
             }
         } while ($retry)
- 
         $redirectUri
     }
 }
@@ -92,7 +90,7 @@ Write-Host "Download redirected to $DownloadURI"
 Write-Host "Available $appName version ....: $DownloadVer"
 
 Write-Host "Pre-installed $appName version : " -NoNewline
-$preInstalledWMIObj = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -eq $appName}
+$preInstalledWMIObj = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -eq $appName }
 [string]$preInstalledVersion = $preInstalledWMIObj.Version
 Write-Host $preInstalledVersion
 
@@ -120,13 +118,12 @@ else {
     Write-Host "Uninstallation took $($perf.Seconds) seconds"
 }
 
-if ($doInstall)
-{
+if ($doInstall) {
     try {
         Write-Host "Starting download to $InstallerMSI"
         #$perf = Measure-Command { Invoke-WebRequest -Uri $InstallerURI -OutFile "$InstallerMSI" -UseBasicParsing }
         #$perf = Measure-Command { Start-BitsTransfer -Source $InstallerURI -Destination "$InstallerMSI" }
-        $perf = Measure-Command { (New-Object System.Net.WebClient).DownloadFile("$DownloadURI","$InstallerMSI") }
+        $perf = Measure-Command { (New-Object System.Net.WebClient).DownloadFile("$DownloadURI", "$InstallerMSI") }
         Write-Host "Download completed in $($perf.Seconds) seconds"
     }
     catch {
@@ -151,7 +148,8 @@ if ($doInstall)
         $record = $View.GetType().InvokeMember( "Fetch", "InvokeMethod", $Null, $View, $Null )
         $downloadedVersion = $record.GetType().InvokeMember( "StringData", "GetProperty", $Null, $record, 1 )
         Write-Host "Downloaded $appName version ...: $downloadedVersion"
-    } catch {
+    }
+    catch {
         $exitCode = 1
         throw "Unable to determine verion of downloaded file: $error[0]"
     }
@@ -169,7 +167,7 @@ if ($doInstall)
     Write-Host "Installation completed in $($perf.Seconds) seconds"
 
     Write-Host "Checking the now-installed version on this device"
-    $nowInstalledVersion = $(Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -eq $appName}).Version
+    $nowInstalledVersion = $(Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -eq $appName }).Version
     Write-Host "Installed Version on this device was ..: $preInstalledVersion"
     Write-Host "Installed Version on this device is ...: $nowInstalledVersion"
     if (-not $preInstalledVersion -and $nowInstalledVersion) {

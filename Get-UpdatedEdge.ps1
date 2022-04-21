@@ -1,9 +1,10 @@
-﻿# Get-UpdatedEdge.ps1 v1.02
+﻿$ScriptName = 'Get-UpdatedEdge-v1.03'
 # Updates Edge to whatever is the current version available to download for the x64 Stable Channel
 
 # Log to the ProgramData path for IME.  If Diagnostic data is collected, this .log should come along for the ride.
-Start-Transcript -Path "$('{0}\Microsoft\IntuneManagementExtension\Logs\Get-UpdatedEdge-{1}.log' -f $env:ProgramData, $(Get-Date).ToFileTimeUtc())" | Out-Null
+Start-Transcript -Path "$('{0}\Microsoft\IntuneManagementExtension\Logs\{1}-{2}.log' -f $env:ProgramData, $ScriptName, $(Get-Date).ToFileTimeUtc())" | Out-Null
 #Start-Transcript -Path "$('{0}-{1}.log' -f $PSCommandPath, $(Get-Date).ToFileTimeUtc())" | Out-Null
+Write-Host $ScriptName
 Write-Host $PSCommandPath
 
 $appName = 'Microsoft Edge'
@@ -22,25 +23,23 @@ $ProgressPreference = 'SilentlyContinue'
 $exitCode = 0
 
 Write-Host "Attempting to update $appName"
-if (Test-Path -Path $InstallerMSI -PathType Leaf)
-{
+if (Test-Path -Path $InstallerMSI -PathType Leaf) {
     Write-Host "$InstallerMSI already exists.  Assuming this script has already run and exiting clean."
     Stop-Transcript | Out-Null
     exit $exitCode
-} else {
+}
+else {
     Write-Host "Current installer hasn't been downloaded yet."
 }
 
-try
-{
+try {
     Write-Host "Fetching list of available Edge installers"
     # Thanks to Matt Benninge who wrote the parsing of Edge JSON
     # https://www.deploymentresearch.com/using-powershell-to-download-edge-chromium-for-business/
     #$response = Invoke-WebRequest -Uri $InstallerURI -Method Get -ContentType "application/json" -UseBasicParsing -ErrorVariable InvokeWebRequestError
     $response = Invoke-WebRequest $InstallerURI -UseBasicParsing
 }
-catch
-{
+catch {
     $exitCode = 1
     throw "Unable to get HTTP status code 200 from $InstallerURI, but failed: $error[0]"
 }
@@ -55,21 +54,17 @@ Write-Host "Checking the latest version available for $Channel channel..: " -NoN
 Write-Host $DownloadVer
 
 # Let's see if we can determine what version is on this device now.
-function Get-InstalledAppVersion
-{
-    $installedVersion = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -eq $appName}
-    if($installedVersion)
-    {
+function Get-InstalledAppVersion {
+    $installedVersion = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -eq $appName }
+    if ($installedVersion) {
         # Found Edge has been Pre-Installed
         return [string]$($installedVersion.Version)
     }
-    elseif (Test-Path ("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"))
-    {
+    elseif (Test-Path ("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe")) {
         # Found the application .exe in Program Files (x86) which should be normal for Edge, even on x64 Windows
         return [string]$($(Get-Item "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe").VersionInfo).ProductVersion
     }
-    else
-    {
+    else {
         # Edge wasn't part of Windows 10 until 20H2.  Maybe this is an older version of Windows?
         return [string]''
     }
@@ -100,10 +95,9 @@ else {
     $doinstall = $true
 }
 
-if ($doinstall)
-{
+if ($doinstall) {
     $selectedObject = $jsonObj[$selectedIndex].Releases |
-        Where-Object { $_.Architecture -eq $Architecture -and $_.Platform -eq $Platform -and $_.ProductVersion -eq $DownloadVer }
+    Where-Object { $_.Architecture -eq $Architecture -and $_.Platform -eq $Platform -and $_.ProductVersion -eq $DownloadVer }
 
     foreach ($artifact in $selectedObject.Artifacts) {
         $fileName = Split-Path $artifact.Location -Leaf
@@ -120,9 +114,7 @@ if ($doinstall)
             Write-Host "Starting download to $InstallerMSI"
             #$perf = Measure-Command { Invoke-WebRequest -Uri $artifact.Location -OutFile "$InstallerMSI" -UseBasicParsing }
             #$perf = Measure-Command { Start-BitsTransfer -Source $artifact.Location -Destination "$InstallerMSI" }
-    	    #$client = new-object System.Net.WebClient
-	        #$perf = Measure-Command { $client.DownloadFile($artifact.Location, $InstallerMSI) }
-            $perf = Measure-Command { (New-Object System.Net.WebClient).DownloadFile("$DownloadURI","$InstallerMSI") }
+            $perf = Measure-Command { (New-Object System.Net.WebClient).DownloadFile("$DownloadURI", "$InstallerMSI") }
             Write-Host "Download completed in $($perf.Seconds) seconds"
         }
         catch {
@@ -138,8 +130,7 @@ if ($doinstall)
             Write-Warning "Downloaded file Hash..: $checkedHash"
             $exitCode = 1
         }
-        else
-        {
+        else {
             Write-Host "Calculated checksum matches the Expcted checksum!"
             Write-Host "Installing $InstallerMSI"
             $SetupArgs = @(
@@ -174,8 +165,7 @@ if ($doinstall)
 }
 
 # Remove the Desktop Shortcut, if it's there.
-if (Test-Path -Path "$env:PUBLIC\Desktop\Microsoft Edge.lnk")
-{
+if (Test-Path -Path "$env:PUBLIC\Desktop\Microsoft Edge.lnk") {
     Write-Host "Removing Desktop Shortcut from PUBLIC profile path."
     Remove-Item -Path "$env:PUBLIC\Desktop\Microsoft Edge.lnk" -Force
 }

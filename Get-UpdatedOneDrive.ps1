@@ -1,9 +1,10 @@
-﻿# Get-UpdatedOneDrive.ps1 v1.02
+﻿$ScriptName = 'Get-UpdatedOneDrive-v1.03'
 # Updates OneDrive to whatever is the current version available to download for the 64-bit installer
 
 # Log to the ProgramData path for IME.  If Diagnostic data is collected, this .log should come along for the ride.
-Start-Transcript -Path "$('{0}\Microsoft\IntuneManagementExtension\Logs\Get-UpdatedOneDrive-{1}.log' -f $env:ProgramData, $(Get-Date).ToFileTimeUtc())" | Out-Null
+Start-Transcript -Path "$('{0}\Microsoft\IntuneManagementExtension\Logs\{1}-{2}.log' -f $env:ProgramData, $ScriptName, $(Get-Date).ToFileTimeUtc())" | Out-Null
 #Start-Transcript -Path "$('{0}-{1}.log' -f $PSCommandPath, $(Get-Date).ToFileTimeUtc())" | Out-Null
+Write-Host $ScriptName
 Write-Host $PSCommandPath
 
 # Guidance here suggests getting the 32-bit version which is available at the URL below
@@ -34,12 +35,12 @@ $ProgressPreference = 'SilentlyContinue'
 $exitCode = 0
 
 Write-Host "Attempting to update $appName"
-if (Test-Path -Path $InstallerEXE -PathType Leaf)
-{
+if (Test-Path -Path $InstallerEXE -PathType Leaf) {
     Write-Host "$InstallerEXE already exists.  Assuming this script has already run and exiting clean."
     Stop-Transcript | Out-Null
     exit $exitCode
-} else {
+}
+else {
     Write-Host "Current installer hasn't been downloaded yet."
 }
 
@@ -76,7 +77,6 @@ function Get-RedirectedUri {
                     # This is for Powershell core
                     $redirectUri = $request.BaseResponse.RequestMessage.RequestUri.AbsoluteUri
                 }
- 
                 $retry = $false
             }
             catch {
@@ -89,7 +89,6 @@ function Get-RedirectedUri {
                 }
             }
         } while ($retry)
- 
         $redirectUri
     }
 }
@@ -105,38 +104,30 @@ Write-Host "Download redirected to $DownloadURI"
 $DownloadVer = (Split-Path -Path $DownloadURI -Parent).Split('\')[-2]
 Write-Host "Available $appName version ....: $DownloadVer"
 
-
 # Let's see if we can determine what version is on this device now.
-function Get-InstalledAppVersion
-{
-    $installedVersion = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -eq $appName}
-    if($installedVersion)
-    {
+function Get-InstalledAppVersion {
+    $installedVersion = Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -eq $appName }
+    if ($installedVersion) {
         Write-Host "Found OneDrive was pre-installed.  That's unusual, but... ok."
         return [string]$($installedVersion.Version)
     }
-    elseif (Test-Path ("${env:ProgramFiles}\Microsoft OneDrive\OneDrive.exe"))
-    {
+    elseif (Test-Path ("${env:ProgramFiles}\Microsoft OneDrive\OneDrive.exe")) {
         Write-Host "Found the application .exe in Program Files."
         return [string]$($(Get-Item "${env:ProgramFiles}\Microsoft OneDrive\OneDrive.exe").VersionInfo).ProductVersion
     }
-    elseif (Test-Path ("${env:ProgramFiles(x86)}\Microsoft OneDrive\OneDrive.exe"))
-    {
+    elseif (Test-Path ("${env:ProgramFiles(x86)}\Microsoft OneDrive\OneDrive.exe")) {
         Write-Host "Found the application .exe in Program Files (x86)."
         return [string]$($(Get-Item "${env:ProgramFiles(x86)}\Microsoft OneDrive\OneDrive.exe").VersionInfo).ProductVersion
     }
-    elseif (Test-Path ("$env:windir\SysWOW64\OneDriveSetup.exe"))
-    {
+    elseif (Test-Path ("$env:windir\SysWOW64\OneDriveSetup.exe")) {
         Write-Host "Found the installer in SysWOW64, which should be normal in pre-deployment"
         return [string]$($(Get-Item "$env:windir\SysWOW64\OneDriveSetup.exe").VersionInfo).ProductVersion
     }
-    elseif (Test-Path ("$env:windir\System32\OneDriveSetup.exe"))
-    {
+    elseif (Test-Path ("$env:windir\System32\OneDriveSetup.exe")) {
         Write-Host "Found the installer in System32 which should only happen on x86 Windows (maybe on ARM64)"
         return [string]$($(Get-Item "$env:windir\System32\OneDriveSetup.exe").VersionInfo).ProductVersion
     }
-    else
-    {
+    else {
         Write-Host "Can't seem to find OneDrive anywhere... that's weird."
         return [string]''
     }
@@ -144,7 +135,6 @@ function Get-InstalledAppVersion
 
 $preInstalledVersion = Get-InstalledAppVersion
 Write-Host "Pre-installed $appName version : $preInstalledVersion"
-
 
 if ($preInstalledVersion -eq $DownloadVer) {
     Write-Warning "Update not needed! Installed version already matches the latest available."
@@ -157,7 +147,7 @@ else {
         Write-Host "Starting download to $InstallerEXE"
         #$perf = Measure-Command { Invoke-WebRequest -Uri $InstallerURI -OutFile "$InstallerEXE" -UseBasicParsing }
         #$perf = Measure-Command { Start-BitsTransfer -Source $InstallerURI -Destination "$InstallerEXE" }
-        $perf = Measure-Command { (New-Object System.Net.WebClient).DownloadFile("$DownloadURI","$InstallerEXE") }
+        $perf = Measure-Command { (New-Object System.Net.WebClient).DownloadFile("$DownloadURI", "$InstallerEXE") }
         Write-Host "Download completed in $($perf.Seconds) seconds"
 
         $downloadedVersion = [string]$($(Get-Item "$InstallerEXE").VersionInfo).ProductVersion
