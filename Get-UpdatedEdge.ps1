@@ -1,4 +1,4 @@
-﻿# Get-UpdatedEdge.ps1
+﻿# Get-UpdatedEdge.ps1 v1.02
 # Updates Edge to whatever is the current version available to download for the x64 Stable Channel
 
 # Log to the ProgramData path for IME.  If Diagnostic data is collected, this .log should come along for the ride.
@@ -11,7 +11,7 @@ $Platform = "Windows"
 $Architecture = "x64"
 $Channel = "Stable"
 $InstallerURI = 'https://edgeupdates.microsoft.com/api/products?view=enterprise'
-$InstallerMSI = "$($env:TEMP)\CurrentEdge.msi"
+$InstallerMSI = "$($env:TEMP)\GotUpdatedEdge.msi"
 
 # Force using TLS 1.2 connection
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -49,7 +49,7 @@ $jsonObj = ConvertFrom-Json $([String]::new($response.Content))
 $selectedIndex = [array]::indexof($jsonObj.Product, "$Channel")
 
 Write-Host "Checking the latest version available for $Channel channel..: " -NoNewline
-$DownloadVer = (([Version[]](($jsonObj[$selectedIndex].Releases |
+[string]$DownloadVer = (([Version[]](($jsonObj[$selectedIndex].Releases |
     Where-Object { $_.Architecture -eq $Architecture -and $_.Platform -eq $Platform }).ProductVersion) |
     Sort-Object -Descending)[0]).ToString(4)
 Write-Host $DownloadVer
@@ -76,37 +76,39 @@ function Get-InstalledAppVersion
 }
 
 Write-Host "Checking the installed version currently on this device...: " -NoNewline
-$preInstalledVersion = Get-InstalledAppVersion
+[string]$preInstalledVersion = Get-InstalledAppVersion
 Write-Host $preInstalledVersion
 
-function Remove-EdgeDesktopLnk
-{
-    # Remove the Desktop Shortcut, if it's there.
-    if (Test-Path -Path "$env:PUBLIC\Desktop\Microsoft Edge.lnk")
-    {
-        Write-Host "Removing Desktop Shortcut"
-        Remove-Item -Path "$env:PUBLIC\Desktop\Microsoft Edge.lnk" -Force
-    }
+if (-not $preInstalledVersion) {
+    Write-Host "Installation is needed! A Pre-Installed version was not found."
+    $doinstall = $true
+}
+elseif (-not $DownloadVer) {
+    Write-Warning "Not installing! The currently available version is unknown."
+    $doinstall = $false
+}
+elseif ([version]$preInstalledVersion -eq [version]$DownloadVer) {
+    Write-Warning "Update not needed! Installed version already matches the latest available."
+    $doinstall = $false
+}
+elseif ([version]$preInstalledVersion -gt [version]$DownloadVer) {
+    Write-Warning "Update not needed! Installed version is NEWER than the latest available."
+    $doinstall = $false
+}
+else {
+    Write-Host "Installation needed.  The Pre-Installed version is outdated."
+    $doinstall = $true
 }
 
-if ($preInstalledVersion -eq $DownloadVer)
+if ($doinstall)
 {
-    Write-Warning "Update not needed! Installed version already matches the latest available."
-    Remove-EdgeDesktopLnk
-}
-elseif ($preInstalledVersion -gt $DownloadVer) {
-    Write-Warning "Update not needed! Installed version is NEWER than the latest available. Different channels?"
-    Remove-EdgeDesktopLnk
-}
-else
-{
-    # Edge needs to be updated...
     $selectedObject = $jsonObj[$selectedIndex].Releases |
         Where-Object { $_.Architecture -eq $Architecture -and $_.Platform -eq $Platform -and $_.ProductVersion -eq $DownloadVer }
 
     foreach ($artifact in $selectedObject.Artifacts) {
         $fileName = Split-Path $artifact.Location -Leaf
-        Write-Host "Download redirected to $($artifact.Location)"
+        $DownloadURI = $artifact.Location
+        Write-Host "Download redirected to $DownloadURI"
 
         # This should be an MSI, but let's make sure
         if ($artifact.ArtifactName -ne 'msi') {
@@ -115,11 +117,12 @@ else
         }
 
         try {
-            Write-Host "Starting download of: $fileName as $InstallerMSI"
+            Write-Host "Starting download to $InstallerMSI"
             #$perf = Measure-Command { Invoke-WebRequest -Uri $artifact.Location -OutFile "$InstallerMSI" -UseBasicParsing }
             #$perf = Measure-Command { Start-BitsTransfer -Source $artifact.Location -Destination "$InstallerMSI" }
-    	    $client = new-object System.Net.WebClient
-	    $perf = Measure-Command { $client.DownloadFile($artifact.Location, $InstallerMSI) }
+    	    #$client = new-object System.Net.WebClient
+	        #$perf = Measure-Command { $client.DownloadFile($artifact.Location, $InstallerMSI) }
+            $perf = Measure-Command { (New-Object System.Net.WebClient).DownloadFile("$DownloadURI","$InstallerMSI") }
             Write-Host "Download completed in $($perf.Seconds) seconds"
         }
         catch {
@@ -150,19 +153,18 @@ else
             )
             $perf = Measure-Command { Start-Process msiexec.exe -Wait -NoNewWindow -ArgumentList $SetupArgs }
             Write-Host "Installation completed in $($perf.Seconds) seconds"
-            Remove-EdgeDesktopLnk
 
             Write-Host "Checking the now-installed version on this device"
             $nowInstalledVersion = Get-InstalledAppVersion
-
             Write-Host "Installed Version on this device was ..: $preInstalledVersion"
             Write-Host "Installed Version on this device is ...: $nowInstalledVersion"
-            if ($nowInstalledVersion -gt $preInstalledVersion)
-            {
+            if (-not $preInstalledVersion -and $nowInstalledVersion) {
+                Write-Host "Installation sucessful."
+            }
+            elseif ([version]$preInstalledVersion -lt [version]$nowInstalledVersion) {
                 Write-Host "Update was sucessful."
             }
-            else
-            {
+            else {
                 Write-Host "Update failed."
                 $exitCode = 1
             }
@@ -171,8 +173,12 @@ else
 
 }
 
-# Shouldn't need to do this...
-Remove-EdgeDesktopLnk
+# Remove the Desktop Shortcut, if it's there.
+if (Test-Path -Path "$env:PUBLIC\Desktop\Microsoft Edge.lnk")
+{
+    Write-Host "Removing Desktop Shortcut from PUBLIC profile path."
+    Remove-Item -Path "$env:PUBLIC\Desktop\Microsoft Edge.lnk" -Force
+}
 
 Stop-Transcript | Out-Null
 exit $exitCode

@@ -1,5 +1,5 @@
-﻿# Get-UpdatedOneDrive.ps1
-# Updates OneDrive to whatever is the current version available to download for the 32-bit installer that self-updates for 64bit devices
+﻿# Get-UpdatedOneDrive.ps1 v1.02
+# Updates OneDrive to whatever is the current version available to download for the 64-bit installer
 
 # Log to the ProgramData path for IME.  If Diagnostic data is collected, this .log should come along for the ride.
 Start-Transcript -Path "$('{0}\Microsoft\IntuneManagementExtension\Logs\Get-UpdatedOneDrive-{1}.log' -f $env:ProgramData, $(Get-Date).ToFileTimeUtc())" | Out-Null
@@ -23,7 +23,7 @@ Write-Host $PSCommandPath
 $appName = 'Microsoft OneDrive'
 # Let's use the 64bit installer
 $InstallerURI = 'https://go.microsoft.com/fwlink/?linkid=844652'
-$InstallerEXE = "$($env:TEMP)\OneDriveSetup.exe"
+$InstallerEXE = "$($env:TEMP)\GotUpdatedOneDrive.exe"
 
 # Force using TLS 1.2 connection
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -68,11 +68,11 @@ function Get-RedirectedUri {
         do {
             try {
                 $request = Invoke-WebRequest -Method Head -Uri $Uri -UseBasicParsing
-                if ($request.BaseResponse.ResponseUri -ne $null) {
+                if ($null -ne $request.BaseResponse.ResponseUri) {
                     # This is for Powershell 5
                     $redirectUri = $request.BaseResponse.ResponseUri.AbsoluteUri
                 }
-                elseif ($request.BaseResponse.RequestMessage.RequestUri -ne $null) {
+                elseif ($null -ne $request.BaseResponse.RequestMessage.RequestUri) {
                     # This is for Powershell core
                     $redirectUri = $request.BaseResponse.RequestMessage.RequestUri.AbsoluteUri
                 }
@@ -97,7 +97,7 @@ function Get-RedirectedUri {
 # Get the actual download URI from the redirection which looks something like this
 # for 32bit - https://oneclient.sfx.ms/Win/Prod/22.065.0412.0004/OneDriveSetup.exe
 # for 64bit - https://oneclient.sfx.ms/Win/Prod/22.045.0227.0004/amd64/OneDriveSetup.exe
-$DownloadURI = Get-RedirectedURI -Uri $InstallerURI
+[string]$DownloadURI = Get-RedirectedURI -Uri $InstallerURI
 Write-Host "Download redirected to $DownloadURI"
 # Parse the version from the download URI for the 32bit
 #$DownloadVer = (Split-Path -Path $DownloadURI -Parent).Split('\')[-1]
@@ -112,27 +112,27 @@ function Get-InstalledAppVersion
     $installedVersion = Get-WmiObject -Class Win32_Product | Where-Object {$_.Name -eq $appName}
     if($installedVersion)
     {
-        Write-Host "Found OneDrive was pre-installed.  That's unusual, but ok."
+        Write-Host "Found OneDrive was pre-installed.  That's unusual, but... ok."
         return [string]$($installedVersion.Version)
     }
     elseif (Test-Path ("${env:ProgramFiles}\Microsoft OneDrive\OneDrive.exe"))
     {
-        Write-Host "Found the application .exe in Program Files, which is a bit weird if this is x64 Windows, but ok."
+        Write-Host "Found the application .exe in Program Files."
         return [string]$($(Get-Item "${env:ProgramFiles}\Microsoft OneDrive\OneDrive.exe").VersionInfo).ProductVersion
     }
     elseif (Test-Path ("${env:ProgramFiles(x86)}\Microsoft OneDrive\OneDrive.exe"))
     {
-        Write-Host "Found the 32bit application .exe in Program Files (x86) which should be normal for x64 Windows."
+        Write-Host "Found the application .exe in Program Files (x86)."
         return [string]$($(Get-Item "${env:ProgramFiles(x86)}\Microsoft OneDrive\OneDrive.exe").VersionInfo).ProductVersion
     }
     elseif (Test-Path ("$env:windir\SysWOW64\OneDriveSetup.exe"))
     {
-        Write-Host "Found the 32bit installer in SysWOW64, which should be normal in pre-deployment"
+        Write-Host "Found the installer in SysWOW64, which should be normal in pre-deployment"
         return [string]$($(Get-Item "$env:windir\SysWOW64\OneDriveSetup.exe").VersionInfo).ProductVersion
     }
     elseif (Test-Path ("$env:windir\System32\OneDriveSetup.exe"))
     {
-        Write-Host "Found the installer in System32 which should only happen on x86 Windows(maybe on ARM64?)"
+        Write-Host "Found the installer in System32 which should only happen on x86 Windows (maybe on ARM64)"
         return [string]$($(Get-Item "$env:windir\System32\OneDriveSetup.exe").VersionInfo).ProductVersion
     }
     else
@@ -154,11 +154,10 @@ elseif ($preInstalledVersion -gt $DownloadVer) {
 }
 else {
     try {
-        Write-Host "Starting download of: $InstallerEXE"
-        #$perf = Measure-Command { Invoke-WebRequest -Uri $DownloadURI -OutFile "$InstallerEXE" -UseBasicParsing }
-        #$perf = Measure-Command { Start-BitsTransfer -Source $DownloadURI -Destination "$InstallerEXE" }
-    	$client = new-object System.Net.WebClient
-	$perf = Measure-Command { $client.DownloadFile($DownloadURI, $InstallerEXE) }
+        Write-Host "Starting download to $InstallerEXE"
+        #$perf = Measure-Command { Invoke-WebRequest -Uri $InstallerURI -OutFile "$InstallerEXE" -UseBasicParsing }
+        #$perf = Measure-Command { Start-BitsTransfer -Source $InstallerURI -Destination "$InstallerEXE" }
+        $perf = Measure-Command { (New-Object System.Net.WebClient).DownloadFile("$DownloadURI","$InstallerEXE") }
         Write-Host "Download completed in $($perf.Seconds) seconds"
 
         $downloadedVersion = [string]$($(Get-Item "$InstallerEXE").VersionInfo).ProductVersion
@@ -180,18 +179,19 @@ else {
     
     Write-Host "Checking the now-installed version on this device"
     $nowInstalledVersion = Get-InstalledAppVersion
-
     Write-Host "Installed Version on this device was ..: $preInstalledVersion"
     Write-Host "Installed Version on this device is ...: $nowInstalledVersion"
-    if ($nowInstalledVersion -gt $preInstalledVersion)
-    {
+    if (-not $preInstalledVersion -and $nowInstalledVersion) {
+        Write-Host "Installation sucessful."
+    }
+    elseif ([version]$preInstalledVersion -lt [version]$nowInstalledVersion) {
         Write-Host "Update was sucessful."
     }
-    else
-    {
+    else {
         Write-Host "Update failed."
         $exitCode = 1
     }
+
 }
 
 Stop-Transcript | Out-Null
