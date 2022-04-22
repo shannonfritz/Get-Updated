@@ -1,4 +1,4 @@
-﻿$ScriptName = 'Get-UpdatedTeams-v1.03'
+﻿$ScriptName = 'Get-UpdatedTeams-v1.04'
 # Updates Teams to whatever is the current version available to download for the Commercial x64 Machine-Wide installer
 
 # Log to the ProgramData path for IME.  If Diagnostic data is collected, this .log should come along for the ride.
@@ -14,6 +14,11 @@ Write-Host $PSCommandPath
 $appName = 'Teams Machine-wide Installer'
 $InstallerURI = 'https://teams.microsoft.com/downloads/desktopurl?env=production&plat=windows&arch=x64&managedInstaller=true&download=true'
 $InstallerMSI = "$($env:TEMP)\GotUpdatedTeams.msi"
+
+# What should we do if the Machine-Wide isntaller is NOT already on the device?
+#$true  = Install if it is not already on the device
+#$false = Install only if an older version is already on the device
+$InstallIfMissing = $false
 
 # Force using TLS 1.2 connection
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -95,8 +100,13 @@ $preInstalledWMIObj = Get-WmiObject -Class Win32_Product | Where-Object { $_.Nam
 Write-Host $preInstalledVersion
 
 if (-not $preInstalledVersion) {
-    Write-Host "Installation is needed! A Pre-Installed version was not found."
-    $doinstall = $true
+    if ($InstallIfMissing) {
+        Write-Host "Installation is needed! A Pre-Installed version was not found."
+        $doinstall = $true
+    } else {
+        Write-Host "Installation NOT needed! A Pre-Installed version was not found."
+        $doinstall = $false
+    }
 }
 elseif (-not $DownloadVer) {
     Write-Warning "Not installing! The currently available version is unknown."
