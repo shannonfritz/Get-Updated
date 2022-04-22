@@ -1,4 +1,4 @@
-﻿$ScriptName = 'Get-UpdatedDefender-v1.02'
+﻿$ScriptName = 'Get-UpdatedDefender-v1.03'
 # Updates Microsoft Defender for Endpoint from Windows Update Services
 # Variation on the VB script here https://docs.microsoft.com/en-us/previous-versions/windows/desktop/aa387102(v=vs.85)
 
@@ -7,6 +7,20 @@ Start-Transcript -Path "$('{0}\Microsoft\IntuneManagementExtension\Logs\{1}-{2}.
 #Start-Transcript -Path "$('{0}-{1}.log' -f $PSCommandPath, $(Get-Date).ToFileTimeUtc())" | Out-Null
 Write-Host $ScriptName
 Write-Host $PSCommandPath
+
+$appName = 'Microsoft Defender'
+$InstallerTAG = "$($env:TEMP)\GotUpdatedDefender.tag"
+
+$exitCode = 0
+
+if (Test-Path -Path $InstallerTAG -PathType Leaf) {
+    Write-Host "$InstallerTAG already exists.  Assuming this script has already run and exiting clean."
+    Stop-Transcript | Out-Null
+    exit $exitCode
+}
+else {
+    Write-Host "Attempting to update $appName"
+}
 
 Write-Host "Checking initial status of Defender updates and Signatures"
 Get-MpComputerStatus | select *updated, *version
@@ -38,6 +52,7 @@ Do {
     }
     catch {
         Write-Error ("Error occured: {0}" -f $($_.Exception.Message))
+        $exitCode = 1
     }
 
     #Log Search result
@@ -74,6 +89,7 @@ Do {
             }
             catch {
                 Write-Error ("Error occured: {0}" -f $($_.Exception.Message))
+                $exitCode = 1
             }
 
             #Create Update Collection to Install
@@ -90,6 +106,7 @@ Do {
             }
             catch {
                 Write-Error ("Error occured: {0}" -f $($_.Exception.Message))
+                $exitCode = 1
             }
             $DefenderUpdatesInstallColl = $null
         }
@@ -118,6 +135,8 @@ Update-MpSignature
 
 Write-Host "Checking current status of Defender updates and Signatures"
 Get-MpComputerStatus | select *updated, *version
+
+New-Item $InstallerTAG | Out-Null
 
 Write-Host "Finished." 
 Stop-Transcript | Out-Null
