@@ -26,7 +26,7 @@ For each product you want to get updated, add a new PowerShell script policy, up
 For devices that are being deployed via Autopilot with the Enrollment Status Page enabled, the script assignment/execution happens during the Device Setup stage just before apps are installed.  By design, they also run during the User setup before their apps are installed.
 
 # Collecting Logs
-A PowerShell Transcript log is created in `C:\Microsoft\IntuneManagementExtension\Logs\` which can be harvested directly, or by using the [Collect Diagnostics](https://docs.microsoft.com/en-us/mem/intune/remote-actions/collect-diagnostics) feature to get them in a `.zip` file off the device directly through the Intune portal.  Here's an example:
+A PowerShell Transcript log is created in `C:\ProgramData\Microsoft\IntuneManagementExtension\Logs\` which can be harvested directly, or by using the [Collect Diagnostics](https://docs.microsoft.com/en-us/mem/intune/remote-actions/collect-diagnostics) feature to get them in a `.zip` file off the device directly through the Intune portal.  Here's an example:
 
 ```
 **********************
