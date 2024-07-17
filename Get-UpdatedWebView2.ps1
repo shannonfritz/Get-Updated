@@ -1,4 +1,4 @@
-﻿$ScriptName = 'Get-UpdatedWebView2-v0.02'
+﻿$ScriptName = 'Get-UpdatedWebView2-v0.03'
 # Install the current version of WebView2 from the developer site using the bootstrap installer
 
 # Log to the ProgramData path for IME.  If Diagnostic data is collected, this .log should come along for the ride.
@@ -138,6 +138,8 @@ function Install-UpdatedWebView2 {
 
     if ($retry -eq 0) {
         $exitCode = 1
+        # Remove the installer to try again later
+        Remove-Item -Path $InstallerEXE -Force
         throw "$appName failed to install: $error[0]"
     }
 }
